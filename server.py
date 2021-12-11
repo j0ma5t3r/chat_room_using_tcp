@@ -73,7 +73,7 @@ def handle(client):
                 
                 # Return a list of all commands
                 elif(cmd[0].lower() == "help"):
-                    client.send("\nCommands:\n---------\nhelp        - all commands\nAmIAdmin    - see if you're an admin\nleave (or l)- leave the chat room\nlist        - see all users in the chat room\ninvite      - create an one-time invite\n\nADMIN commands:\n---------------\nkick <username>\nop <username>\nunop <username>\n".encode("utf-8"))
+                    client.send("\nCommands:\n---------\nhelp        - all commands\nAmIAdmin    - see if you're an admin\nleave (or l)- leave the chat room\nlist        - see all users in the chat room\ninvite      - create an one-time invite\n\nADMIN commands:\n---------------\nkick <username>\nop <username>\nunop <username>\npwd <string>\n".encode("utf-8"))
 
                 # Return if the user who sent the command is an administrator
                 elif(cmd[0].lower() == "amiadmin"):
