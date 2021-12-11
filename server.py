@@ -28,6 +28,8 @@ clients = []
 nicknames = []
 admins = []
 
+admin_commands = ["kick", "op", "unop"]
+
 def broadcast(message):
     for client in clients:
         client.send(message)
@@ -37,14 +39,14 @@ def handle(client):
         try:
             message = client.recv(1024).decode("utf-8")
 
+            ########################
+            ### Command handling ###
+            ########################
+
             if(message.startswith("!") and not message == "!"):
                 cmd = message.split("!")
                 cmd = str(cmd[1]).split(" ")
                 print(cmd)
-
-                ########################
-                ### Command handling ###
-                ########################
 
                 # Disconnect the user who sent the command
                 if(cmd[0].lower() == "leave" or cmd[0].lower() == "l"):
@@ -62,7 +64,7 @@ def handle(client):
                 
                 # Return a list of all commands
                 elif(cmd[0].lower() == "help"):
-                    client.send("\nCommands:\n---------\nhelp        - all commands\nAmIAdmin    - see if you're an admin\nleave (or l)- leave the chat room\nlist        - see all users in the chat room\n\nADMIN commands:\n---------------\nkick <username>\n".encode("utf-8"))
+                    client.send("\nCommands:\n---------\nhelp        - all commands\nAmIAdmin    - see if you're an admin\nleave (or l)- leave the chat room\nlist        - see all users in the chat room\n\nADMIN commands:\n---------------\nkick <username>\nop <username>\nunop <username>\n".encode("utf-8"))
 
                 # Return if the user who sent the command is an administrator
                 elif(cmd[0].lower() == "amiadmin"):
@@ -79,18 +81,39 @@ def handle(client):
                         all_users += "\n"
                     client.send(all_users.encode('utf-8'))
 
-                # Kick a user by providing a username
-                if(cmd[0].lower() == "kick"):
-                    if(client in admins and cmd[1] in nicknames):
+                ### ADMIN commands ###
+                if(client in admins and cmd[0].lower() in admin_commands):
+
+                    # Kick a user by providing a username
+                    if(cmd[0].lower() == admin_commands[0] and cmd[1] in nicknames and len(cmd > 1)):
                         user = clients[nicknames.index(cmd[1])]
                         user.send(f"You have been kicked from the server by {nicknames[clients.index(client)]}. Don't be mad.".encode("utf-8"))
                         user.send("cnnctn_end".encode("utf-8"))
                         user.close()
 
                         client.send(f"You kicked {nicknames[clients.index(user)]}!".encode("utf-8"))
-                    else:
-                        client.send("You can't perform this action!".encode("utf-8"))
 
+                    # Promote a user to ADMIN by providing a username
+                    if(cmd[0].lower() == admin_commands[1] and cmd[1] in nicknames and not clients[nicknames.index(cmd[1])] in admins):
+                        user = clients[nicknames.index(cmd[1])]
+                        admins.append(user)
+
+                        client.send(f"You promoted {cmd[1]} to ADMIN!".encode("utf-8"))
+                        user.send("You have been promoted to ADMIN! Don't be a fool!".encode("utf-8"))
+                    
+                    # Un-op a user
+                    if(cmd[0].lower() == admin_commands[2] and clients[nicknames.index(cmd[1])] in admins):
+                        user = clients[nicknames.index(cmd[1])]
+                        admins.remove(user)
+
+                        client.send(f"You removed {cmd[1]} from the ADMINs!".encode("utf-8"))
+                        user.send("You are no longer an ADMIN.".encode("utf-8"))
+
+                else:
+                    if(cmd[0].lower() in admin_commands):
+                        client.send("You can't perform this action!".encode("utf-8"))
+                    else:
+                        pass
             else:
                 message = f"{nicknames[clients.index(client)]} >>> {message}"
                 broadcast(message.encode("utf-8"))
@@ -122,6 +145,7 @@ def receive():
             cl_passwd = client.recv(1024).decode("utf-8")
             if(not cl_passwd == PASSWORD and not cl_passwd == ADMN_PASSWORD):
                 print(f"Password received from client {address[0]}: '{cl_passwd}' - !!!>REJECTED<!!!, closing connection...")
+                client.send("Wrong password.".encode("utf-8"))
                 client.send("cnnctn_end".encode("utf-8"))
                 client.close()
                 print("Connection closed!")
@@ -129,11 +153,18 @@ def receive():
                 print(f"Password received from client {address[0]}: '{cl_passwd}' - !!!>ACCEPTED<!!!, continue...")
                 client.send('return_nick'.encode("utf-8"))
                 nickname = client.recv(1024).decode("utf-8")
+
                 if(nickname in nicknames):
                     client.send(f"Username '{nickname}' is already used in this chat room. Better luck next time!".encode("utf-8"))
                     client.send("cnnctn_end".encode("utf-8"))
                     client.close()
                     continue
+                elif(" " in nickname):
+                    client.send(f"Your username insn't allowed to contain spaces.".encode("utf-8"))
+                    client.send("cnnctn_end".encode("utf-8"))
+                    client.close()
+                    continue
+
                 nicknames.append(nickname)
                 clients.append(client)
 
