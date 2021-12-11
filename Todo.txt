@@ -2,12 +2,15 @@
 -F- add "unop" command                                                           | self-explanatory
 --- add "ban" command                                                            | store the nickname in a file
 --- add "banIP" command                                                          | store the IP address in a file
+--- add "unban" command                                                          | self-explanatory
 --- add "close-chat" command                                                     | not sure if thats possible because of threading
---- create one-time invites (so you don't have to share the chat rooms password) | randomly generated code gets stored in a list and can be used once as a password
---- add "pwd" command                                                            | set a new password for "normal" users and store it in the file
+-F- create one-time invites (so you don't have to share the chat rooms password) | randomly generated code gets stored in a list and can be used once as a password
+-F- add "pwd" command                                                            | set a new password for "normal" users and store it in the file
 -F- ensure that usernames don't contain spaces                                   | similar to "wrong password"
 --- add encryption (could be difficult)                                          | additional function that handles at least the sending of messages
 -W- make the code look pretty                                                    | hint: can't be completed, but can be improved
+---: add "[SERVER<TO@all>]" or "[SERVER<TO@you>]" to all messages                | just work, not difficult at all
+---: create logfile for sever output and sent messages                           | write every print and every message in a file
 
 
 

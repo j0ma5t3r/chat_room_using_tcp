@@ -1,17 +1,23 @@
-from os import remove
 import socket
 import threading
+import string
+import random
+import os
+
+file_dir = os.path.dirname(os.path.realpath(__file__))
+
+random_token_len = 10
 
 HOST = socket.gethostbyname(socket.gethostname())
 
 try:
-    with open("password.txt", "r") as f:
+    with open(f"{file_dir}\server_password.txt", "r") as f:
         PASSWORD = str(f.read())
 
-    with open("admin_password.txt", "r") as f:
+    with open(f"{file_dir}\server_admin_password.txt", "r") as f:
         ADMN_PASSWORD = str(f.read())
 
-    with open("server_port.txt", "r") as f:
+    with open(f"{file_dir}\server_port.txt", "r") as f:
         PORT = int(f.read())
 except:
     print("Failed to load details. Using default login info.")
@@ -26,9 +32,11 @@ server.listen(10)
 
 clients = []
 nicknames = []
-admins = []
 
-admin_commands = ["kick", "op", "unop"]
+admins = []
+admin_commands = ["kick", "op", "unop", "pwd"]
+
+invites = []
 
 def broadcast(message):
     for client in clients:
@@ -60,11 +68,12 @@ def handle(client):
                     client.send("cnnctn_end".encode("utf-8"))
                     broadcast(f"[SERVER<TO@all>] {nickname} left the chat room!".encode('utf-8'))
                     print(f"{nickname} left the chat!")
+                    print(f"All clients left: {nicknames}")
                     break
                 
                 # Return a list of all commands
                 elif(cmd[0].lower() == "help"):
-                    client.send("\nCommands:\n---------\nhelp        - all commands\nAmIAdmin    - see if you're an admin\nleave (or l)- leave the chat room\nlist        - see all users in the chat room\n\nADMIN commands:\n---------------\nkick <username>\nop <username>\nunop <username>\n".encode("utf-8"))
+                    client.send("\nCommands:\n---------\nhelp        - all commands\nAmIAdmin    - see if you're an admin\nleave (or l)- leave the chat room\nlist        - see all users in the chat room\ninvite      - create an one-time invite\n\nADMIN commands:\n---------------\nkick <username>\nop <username>\nunop <username>\n".encode("utf-8"))
 
                 # Return if the user who sent the command is an administrator
                 elif(cmd[0].lower() == "amiadmin"):
@@ -74,12 +83,20 @@ def handle(client):
                         client.send("Unfortunetly you are not an ADMIN.".encode("utf-8"))
 
                 # Return all users who are online in this chat room
-                if(cmd[0].lower() == "list"):
+                elif(cmd[0].lower() == "list"):
                     all_users = "All users in this chat room:\n----------------------------\n\n"
                     for user in nicknames:
                         all_users += user
                         all_users += "\n"
                     client.send(all_users.encode('utf-8'))
+
+                # Create an one-time password for a "normal" user to log in
+                elif(cmd[0].lower() == "invite"):
+                    ran = ''.join(random.choices(string.ascii_uppercase + string.digits, k = random_token_len))
+                    print(f"Invite token is: {ran}")
+                    global invites
+                    invites.append(ran)
+                    client.send(f"You generated the token >>> {ran} <<< give it wisely to another user who wants to join.".encode("utf-8"))
 
                 ### ADMIN commands ###
                 if(client in admins and cmd[0].lower() in admin_commands):
@@ -94,7 +111,7 @@ def handle(client):
                         client.send(f"You kicked {nicknames[clients.index(user)]}!".encode("utf-8"))
 
                     # Promote a user to ADMIN by providing a username
-                    if(cmd[0].lower() == admin_commands[1] and cmd[1] in nicknames and not clients[nicknames.index(cmd[1])] in admins):
+                    elif(cmd[0].lower() == admin_commands[1] and cmd[1] in nicknames and not clients[nicknames.index(cmd[1])] in admins) and len(cmd > 1):
                         user = clients[nicknames.index(cmd[1])]
                         admins.append(user)
 
@@ -102,12 +119,21 @@ def handle(client):
                         user.send("You have been promoted to ADMIN! Don't be a fool!".encode("utf-8"))
                     
                     # Un-op a user
-                    if(cmd[0].lower() == admin_commands[2] and clients[nicknames.index(cmd[1])] in admins):
+                    elif(cmd[0].lower() == admin_commands[2] and clients[nicknames.index(cmd[1])] in admins and len(cmd > 1)):
                         user = clients[nicknames.index(cmd[1])]
                         admins.remove(user)
 
                         client.send(f"You removed {cmd[1]} from the ADMINs!".encode("utf-8"))
                         user.send("You are no longer an ADMIN.".encode("utf-8"))
+                    
+                    # Set a new server password
+                    elif(cmd[0].lower() == admin_commands[3] and len(cmd) > 1):
+                        with open(f"{file_dir}\server_password.txt", "w") as f:
+                            f.write(cmd[1])
+                        global PASSWORD
+                        PASSWORD = cmd[1]
+                        print(f"New server password is: {cmd[1]}")
+                        broadcast(f"The server password has been changed by {nicknames[clients.index(client)]}!".encode("utf-8"))
 
                 else:
                     if(cmd[0].lower() in admin_commands):
@@ -125,7 +151,10 @@ def handle(client):
             nicknames.remove(nickname)
             if(client in admins): admins.remove(client)
             clients.remove(client)
-
+            try:
+                client.send("cnnctn_end".encode("utf-8"))
+            except:
+                pass
             client.close()
 
             broadcast(f"[SERVER<TO@all>] {nickname} left the chat room!".encode('utf-8'))
@@ -143,7 +172,7 @@ def receive():
 
             client.send('return_passwd'.encode('utf-8'))
             cl_passwd = client.recv(1024).decode("utf-8")
-            if(not cl_passwd == PASSWORD and not cl_passwd == ADMN_PASSWORD):
+            if(not cl_passwd == PASSWORD and not cl_passwd == ADMN_PASSWORD and not cl_passwd in invites):
                 print(f"Password received from client {address[0]}: '{cl_passwd}' - !!!>REJECTED<!!!, closing connection...")
                 client.send("Wrong password.".encode("utf-8"))
                 client.send("cnnctn_end".encode("utf-8"))
@@ -171,6 +200,10 @@ def receive():
                 # Add client to admins if they returned the admin password
                 if(cl_passwd == ADMN_PASSWORD):
                     admins.append(client)
+                
+                if(cl_passwd in invites): 
+                    invites.remove(cl_passwd)
+                    print(f"'{cl_passwd}' was used and removed from 'invites'.")
 
                 print(f"Nickname of client {address[0]} is: {nickname}")
                 broadcast(f"[SERVER<TO@all>] {nickname} joined your party!".encode("utf-8"))
