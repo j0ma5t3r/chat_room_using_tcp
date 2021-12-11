@@ -1,6 +1,7 @@
 import socket
 import threading
 import os
+import time
 
 file_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -39,9 +40,11 @@ def receive():
             elif(message == "cnnctn_end"):
                 print("CONNECTION CLOSED BY SERVER, quit...")
                 stop_threads = True
+            elif(message == "perform_ping_test"):
+                print(f"Your ping to {HOST}:{PORT} is: {ping()} ms")
             else:
                 print(message)
-        
+
         except:
             print("A error occured!")
             client.close()
@@ -53,6 +56,16 @@ def write():
             break
         message = str(input(''))
         client.send(message.encode('utf-8'))
+
+def ping():
+    while True:
+        start_time = time.time()
+        client.send("ping-test-msg".encode('utf-8'))
+        msg = client.recv(1024)
+        stop_time = time.time()
+        if(msg.decode("utf-8") == "ping-answr"):
+            break
+    return stop_time - start_time
 
 receive_thread = threading.Thread(target=receive)
 receive_thread.start()

@@ -47,6 +47,10 @@ def handle(client):
         try:
             message = client.recv(1024).decode("utf-8")
 
+            if(message == "ping-test-msg"):
+                client.send("ping-answr".encode("utf-8"))
+                continue
+
             ########################
             ### Command handling ###
             ########################
@@ -98,6 +102,9 @@ def handle(client):
                     invites.append(ran)
                     client.send(f"You generated the token >>> {ran} <<< give it wisely to another user who wants to join.".encode("utf-8"))
 
+                elif(cmd[0].lower() == "ping"):
+                    client.send("perform_ping_test".encode("utf-8"))
+                    
                 ### ADMIN commands ###
                 if(client in admins and cmd[0].lower() in admin_commands):
 
