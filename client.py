@@ -5,10 +5,10 @@ import os
 file_dir = os.path.dirname(os.path.realpath(__file__))
 
 try:
-    with open(f"{file_dir}\client_host_ip.txt", "r") as f:
+    with open(f"{file_dir}/client_host_ip.txt", "r") as f:
         HOST = str(f.read())
 
-    with open(f"{file_dir}\client_host_port.txt", "r") as f:
+    with open(f"{file_dir}/client_host_port.txt", "r") as f:
         PORT = int(f.read())
 except:
     print("Failed to load details. Using default login info.")

@@ -11,13 +11,13 @@ random_token_len = 10
 HOST = socket.gethostbyname(socket.gethostname())
 
 try:
-    with open(f"{file_dir}\server_password.txt", "r") as f:
+    with open(f"{file_dir}/server_password.txt", "r") as f:
         PASSWORD = str(f.read())
 
-    with open(f"{file_dir}\server_admin_password.txt", "r") as f:
+    with open(f"{file_dir}/server_admin_password.txt", "r") as f:
         ADMN_PASSWORD = str(f.read())
 
-    with open(f"{file_dir}\server_port.txt", "r") as f:
+    with open(f"{file_dir}/server_port.txt", "r") as f:
         PORT = int(f.read())
 except:
     print("Failed to load details. Using default login info.")
